@@ -117,3 +117,78 @@ def plot_forecasts(
         )
 
     fig.show()
+
+def plot_single_forecast(
+    df: pd.DataFrame,
+    timestamp_col: str = "timestamp",
+    actual_col: str = "actual",
+    pred_col: str = "prediction",
+    upper_col: str = "upper_bound",
+    lower_col: str = "lower_bound",
+    start_date: str | None = None,
+    end_date: str | None = None,
+    title: str = "Forecast",
+    model_name: str = "Model",
+    height: int=600,
+    width: int=1000,
+):
+    filtered_df = df.copy()
+    if start_date is not None and end_date is not None:
+        mask = (filtered_df[timestamp_col] >= start_date) & (filtered_df[timestamp_col] <= end_date)
+        filtered_df = filtered_df[mask]
+    
+    fig = go.Figure()
+    
+    fig.add_trace(
+        go.Scatter(
+            x=filtered_df[timestamp_col],
+            y=filtered_df[actual_col],
+            name="Actual",
+            line=dict(color="#50C878"),
+        )
+    )
+    
+    fig.add_trace(
+        go.Scatter(
+            x=filtered_df[timestamp_col],
+            y=filtered_df[pred_col],
+            name=f"{model_name} (prediction)",
+            line=dict(color="#D70040", dash="dot"),
+        )
+    )
+    
+    has_upper = upper_col in filtered_df.columns
+    has_lower = lower_col in filtered_df.columns
+    
+    if has_upper and has_lower:
+        fig.add_trace(
+            go.Scatter(
+                x=filtered_df[timestamp_col],
+                y=filtered_df[upper_col],
+                mode="lines",
+                line=dict(width=0),
+                showlegend=False,
+            )
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=filtered_df[timestamp_col],
+                y=filtered_df[lower_col],
+                mode="lines",
+                fill="tonexty",
+                fillcolor="rgba(255, 127, 14, 0.6)",
+                line=dict(width=0),
+                name=f"{model_name} CI",
+            )
+        )
+    
+    fig.update_layout(
+        title=title,
+        template="plotly_white",
+        height=height,
+        width=width,
+        xaxis_title="Date",
+        yaxis_title="Value",
+    )
+    
+    return fig
