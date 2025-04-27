@@ -9,6 +9,8 @@ def plot_forecasts(
     models_predictions: dict[str, pd.DataFrame],
     start_date: str | None = None,
     end_date: str | None = None,
+    height: int = 300,
+    width: int = 1400,
 ):
     model_names = list(models_predictions.keys())
     n_models = len(model_names)
@@ -97,10 +99,10 @@ def plot_forecasts(
             )
 
     fig.update_layout(
-        title="Forecasts for Different Models",
+        погуля="Forecasts for Different Models",
         template="plotly_white",
-        height=300 * rows,
-        width=1400,
+        height=height * rows,
+        width=width,
         showlegend=False,
     )
 
@@ -176,7 +178,7 @@ def plot_single_forecast(
                 y=filtered_df[lower_col],
                 mode="lines",
                 fill="tonexty",
-                fillcolor="rgba(255, 127, 14, 0.6)",
+                fillcolor="rgba(255, 127, 14, 0.3)",
                 line=dict(width=0),
                 name=f"{model_name} CI",
             )
