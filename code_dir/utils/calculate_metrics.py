@@ -28,15 +28,16 @@ def calculate_metrics(y_true, y_pred):
 
 def calculate_sklearn_metrics(df: pd.DataFrame,
                             target_column: str = 'target',
-                           forecast_cols: list[str] = ['0.1', '0.5', '0.9'],
                            naive_forecast_col: str | None = None,
                            metrics: list[str] = ['MASE', 'MAPE', 'MSE', 'MAE', 'SQL']) -> dict[str, float]:
+    forecast_cols = ['0.1', '0.5', '0.9']
     for col in forecast_cols:
         if col not in df.columns:
             raise ValueError(f"Столбец с прогнозом '{col}' не найден в датафрейме")
     
     if 'MASE' in metrics and naive_forecast_col is None:
         df['naive_forecast'] = df['0.5'].shift(1)
+        df.loc[df.index[0], 'naive_forecast'] = df.loc[df.index[0], '0.5']
         naive_forecast_col = 'naive_forecast'
     
     df = df.dropna(subset=['0.5'] + ([naive_forecast_col] if naive_forecast_col else []))

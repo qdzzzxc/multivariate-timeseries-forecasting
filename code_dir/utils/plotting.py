@@ -11,6 +11,7 @@ def plot_forecasts(
     end_date: str | None = None,
     height: int = 300,
     width: int = 1400,
+    item_id: str | None = None,
 ):
     model_names = list(models_predictions.keys())
     n_models = len(model_names)
@@ -32,6 +33,9 @@ def plot_forecasts(
         row = i // 2 + 1
         col = i % 2 + 1
         model_pred = models_predictions[model_name]
+
+        if item_id is not None:
+            model_pred = model_pred.loc[item_id]
 
         if start_date is not None and end_date is not None:
             mask = (df["timestamp"] >= start_date) & (
@@ -99,7 +103,7 @@ def plot_forecasts(
             )
 
     fig.update_layout(
-        погуля="Forecasts for Different Models",
+        title="Forecasts for Different Models",
         template="plotly_white",
         height=height * rows,
         width=width,
