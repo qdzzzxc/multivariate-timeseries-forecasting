@@ -198,3 +198,182 @@ def plot_single_forecast(
     )
     
     return fig
+
+def plot_forecasts_val_test(
+    val_df: pd.DataFrame,
+    test_df: pd.DataFrame,
+    val_predictions: pd.DataFrame,
+    test_predictions: dict[str, pd.DataFrame],
+    start_date: str | None = None,
+    end_date: str | None = None,
+    height: int = 300,
+    width: int = 1400,
+    item_id: str | None = None,
+):
+    model_names = list(test_predictions.keys())
+    n_models = len(model_names)
+
+    if n_models == 1:
+        rows, cols = 1, 1
+    else:
+        rows = int(np.ceil(n_models / 2))
+        cols = 2
+    
+    filtered_val_df = val_df.copy()
+    filtered_test_df = test_df.copy()
+    
+    if start_date is not None and end_date is not None:        
+        test_mask = (filtered_test_df["timestamp"] >= start_date) & (filtered_test_df["timestamp"] <= end_date)
+        filtered_test_df = filtered_test_df[test_mask]
+    
+    fig = make_subplots(
+        rows=rows, cols=cols, subplot_titles=model_names, vertical_spacing=0.1
+    )
+    
+    for i, model_name in enumerate(model_names):
+        row = i // cols + 1
+        col = i % cols + 1
+
+        model_val_pred = val_predictions[model_name].copy()
+        if item_id is not None:
+            model_val_pred = model_val_pred.loc[item_id]
+
+        filtered_val_mean = model_val_pred["mean"].values
+        filtered_val_upper = model_val_pred["0.9"].values if "0.9" in model_val_pred else None
+        filtered_val_lower = model_val_pred["0.1"].values if "0.1" in model_val_pred else None
+        
+        model_test_pred = test_predictions[model_name]
+        if item_id is not None:
+            model_test_pred = model_test_pred.loc[item_id]
+        
+        if start_date is not None and end_date is not None:
+            test_time_mask = (test_df["timestamp"] >= start_date) & (test_df["timestamp"] <= end_date)
+            
+            filtered_test_mean = model_test_pred["mean"].values[test_time_mask]
+            filtered_test_upper = model_test_pred["0.9"].values[test_time_mask] if "0.9" in model_test_pred else None
+            filtered_test_lower = model_test_pred["0.1"].values[test_time_mask] if "0.1" in model_test_pred else None
+            
+        else:
+            filtered_test_mean = model_test_pred["mean"]
+            filtered_test_upper = model_test_pred["0.9"] if "0.9" in model_test_pred else None
+            filtered_test_lower = model_test_pred["0.1"] if "0.1" in model_test_pred else None
+        
+        fig.add_trace(
+            go.Scatter(
+                x=filtered_val_df["timestamp"],
+                y=filtered_val_df["target"],
+                name="Validation (actual)",
+                line=dict(color="blue"),
+            ),
+            row=row,
+            col=col,
+        )
+        
+        fig.add_trace(
+            go.Scatter(
+                x=filtered_val_df["timestamp"],
+                y=filtered_val_mean,
+                name="Validation (predicted)",
+                line=dict(color="purple", dash="dot"),
+            ),
+            row=row,
+            col=col,
+        )
+        
+        fig.add_trace(
+            go.Scatter(
+                x=filtered_test_df["timestamp"],
+                y=filtered_test_df["target"],
+                name="Test (actual)",
+                line=dict(color="#50C878"),
+            ),
+            row=row,
+            col=col,
+        )
+        
+        fig.add_trace(
+            go.Scatter(
+                x=filtered_test_df["timestamp"],
+                y=filtered_test_mean,
+                name=f"{model_name} Test (predicted)",
+                line=dict(color="#D70040", dash="dot"),
+            ),
+            row=row,
+            col=col,
+        )
+
+        fig.add_trace(
+                go.Scatter(
+                    x=filtered_val_df["timestamp"],
+                    y=filtered_val_upper,
+                    mode="lines",
+                    line=dict(width=0),
+                    showlegend=False,
+                ),
+                row=row,
+                col=col,
+            )
+        fig.add_trace(
+            go.Scatter(
+                x=filtered_val_df["timestamp"],
+                y=filtered_val_lower,
+                mode="lines",
+                fill="tonexty",
+                fillcolor="rgba(128, 0, 128, 0.6)",
+                line=dict(width=0),
+                name=f"{model_name} CI (0.1-0.9)",
+            ),
+            row=row,
+            col=col,
+        )
+        
+        if filtered_test_upper is not None and filtered_test_lower is not None:
+            fig.add_trace(
+                go.Scatter(
+                    x=filtered_test_df["timestamp"],
+                    y=filtered_test_upper,
+                    mode="lines",
+                    line=dict(width=0),
+                    showlegend=False,
+                ),
+                row=row,
+                col=col,
+            )
+            fig.add_trace(
+                go.Scatter(
+                    x=filtered_test_df["timestamp"],
+                    y=filtered_test_lower,
+                    mode="lines",
+                    fill="tonexty",
+                    fillcolor="rgba(255, 127, 14, 0.6)",
+                    line=dict(width=0),
+                    name=f"{model_name} CI (0.1-0.9)",
+                ),
+                row=row,
+                col=col,
+            )
+    
+    fig.update_layout(
+        title="Forecasts with Validation and Test Data",
+        template="plotly_white",
+        height=height * rows,
+        width=width,
+        showlegend=True,
+    )
+    
+    for i in range(rows * cols):
+        row = i // cols + 1
+        col = i % cols + 1
+        
+        fig.update_xaxes(
+            title_text="Date",
+            row=row,
+            col=col,
+        )
+        fig.update_yaxes(
+            title_text="National Demand",
+            row=row,
+            col=col,
+        )
+    
+    fig.show()
