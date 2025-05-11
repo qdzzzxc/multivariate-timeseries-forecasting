@@ -204,6 +204,7 @@ def plot_forecasts_val_test(
     test_df: pd.DataFrame,
     val_predictions: pd.DataFrame,
     test_predictions: dict[str, pd.DataFrame],
+    title: str,
     start_date: str | None = None,
     end_date: str | None = None,
     height: int = 300,
@@ -221,6 +222,9 @@ def plot_forecasts_val_test(
     
     filtered_val_df = val_df.copy()
     filtered_test_df = test_df.copy()
+
+    max_y_value = max(filtered_val_df['target'].max(), filtered_test_df['target'].max()) * 1.1
+    min_y_value = min(filtered_val_df['target'].min(), filtered_test_df['target'].min()) * 0.9
     
     if start_date is not None and end_date is not None:        
         test_mask = (filtered_test_df["timestamp"] >= start_date) & (filtered_test_df["timestamp"] <= end_date)
@@ -262,7 +266,7 @@ def plot_forecasts_val_test(
             go.Scatter(
                 x=filtered_val_df["timestamp"],
                 y=filtered_val_df["target"],
-                name="Validation (actual)",
+                name="Валидация (актуальные значения)",
                 line=dict(color="blue"),
             ),
             row=row,
@@ -273,7 +277,7 @@ def plot_forecasts_val_test(
             go.Scatter(
                 x=filtered_val_df["timestamp"],
                 y=filtered_val_mean,
-                name="Validation (predicted)",
+                name="Валидация (предсказанные значения)",
                 line=dict(color="purple", dash="dot"),
             ),
             row=row,
@@ -284,7 +288,7 @@ def plot_forecasts_val_test(
             go.Scatter(
                 x=filtered_test_df["timestamp"],
                 y=filtered_test_df["target"],
-                name="Test (actual)",
+                name="Тест (актуальные значения)",
                 line=dict(color="#50C878"),
             ),
             row=row,
@@ -295,7 +299,7 @@ def plot_forecasts_val_test(
             go.Scatter(
                 x=filtered_test_df["timestamp"],
                 y=filtered_test_mean,
-                name=f"{model_name} Test (predicted)",
+                name="Тест (предсказанные значения)",
                 line=dict(color="#D70040", dash="dot"),
             ),
             row=row,
@@ -321,7 +325,7 @@ def plot_forecasts_val_test(
                 fill="tonexty",
                 fillcolor="rgba(128, 0, 128, 0.6)",
                 line=dict(width=0),
-                name=f"{model_name} CI (0.1-0.9)",
+                name=f"{model_name} - квантильные предсказания (0.1-0.9)",
             ),
             row=row,
             col=col,
@@ -347,14 +351,14 @@ def plot_forecasts_val_test(
                     fill="tonexty",
                     fillcolor="rgba(255, 127, 14, 0.6)",
                     line=dict(width=0),
-                    name=f"{model_name} CI (0.1-0.9)",
+                    name=f"{model_name} - квантильные предсказания (0.1-0.9)",
                 ),
                 row=row,
                 col=col,
             )
     
     fig.update_layout(
-        title="Forecasts with Validation and Test Data",
+        title=title,
         template="plotly_white",
         height=height * rows,
         width=width,
@@ -366,12 +370,13 @@ def plot_forecasts_val_test(
         col = i % cols + 1
         
         fig.update_xaxes(
-            title_text="Date",
+            title_text="Дата",
             row=row,
             col=col,
         )
         fig.update_yaxes(
-            title_text="National Demand",
+            title_text="Номинальная заработная плата",
+            range=[min_y_value, max_y_value],
             row=row,
             col=col,
         )
